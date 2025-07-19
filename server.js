@@ -11,15 +11,16 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Fulcrum API configuration
+// CORRECTED Fulcrum API configuration based on official docs
 const FULCRUM_API_TOKEN = process.env.FULCRUM_API_TOKEN;
-const FULCRUM_API_URL = process.env.FULCRUM_SITE_URL || 'https://api.fulcrumpro.com';
+// The base URL should be the official Fulcrum API endpoint (not company-specific)
+const FULCRUM_API_URL = 'https://api.fulcrumpro.com';
 
 // Debug logging
 console.log('API Token loaded:', FULCRUM_API_TOKEN ? 'Yes' : 'No');
-console.log('API URL:', FULCRUM_API_URL);
+console.log('API URL (corrected):', FULCRUM_API_URL);
 
-// Helper function to make Fulcrum API calls
+// Helper function to make Fulcrum API calls with enhanced error handling
 async function callFulcrumAPI(endpoint, method = 'GET', body = null) {
   const url = `${FULCRUM_API_URL}${endpoint}`;
   
@@ -47,7 +48,17 @@ async function callFulcrumAPI(endpoint, method = 'GET', body = null) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('API Error Response:', errorText);
-      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      
+      // Provide more specific error messages based on Fulcrum API docs
+      if (response.status === 401) {
+        throw new Error(`Authentication failed (401): Check if your API token is valid and not expired. Generate token from Business Setup -> System Data -> Public Api in your Fulcrum site.`);
+      } else if (response.status === 403) {
+        throw new Error(`Access forbidden (403): Your API token may not have sufficient permissions for this operation.`);
+      } else if (response.status === 404) {
+        throw new Error(`Endpoint not found (404): ${url} - Check if the API endpoint is correct.`);
+      } else {
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+      }
     }
     
     const data = await response.json();
@@ -58,6 +69,46 @@ async function callFulcrumAPI(endpoint, method = 'GET', body = null) {
     throw error;
   }
 }
+
+// Test endpoint for debugging
+app.get('/test-auth', async (req, res) => {
+  try {
+    console.log('Testing authentication with corrected URL...');
+    const result = await callFulcrumAPI('/api/sales-orders', 'GET');
+    
+    res.json({
+      success: true,
+      message: 'Successfully authenticated with Fulcrum API',
+      apiUrl: FULCRUM_API_URL,
+      dataReceived: !!result,
+      responseKeys: Object.keys(result || {})
+    });
+  } catch (error) {
+    console.error('Authentication test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      apiUrl: FULCRUM_API_URL,
+      hasToken: !!FULCRUM_API_TOKEN
+    });
+  }
+});
+
+// Basic health check
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    service: 'Fulcrum MCP Server',
+    apiUrl: FULCRUM_API_URL,
+    hasApiToken: !!FULCRUM_API_TOKEN
+  });
+});
+
+// Start the HTTP server
+app.listen(PORT, () => {
+  console.log(`HTTP server running on port ${PORT}`);
+  console.log(`Test authentication: https://your-app.railway.app/test-auth`);
+});
 
 // MCP Server Setup
 const { Server } = require('@modelcontextprotocol/sdk/server/index.js');
