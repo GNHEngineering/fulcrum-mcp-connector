@@ -107,7 +107,7 @@ app.get('/', (req, res) => {
 // Start the HTTP server
 app.listen(PORT, () => {
   console.log(`HTTP server running on port ${PORT}`);
-  console.log(`Test authentication: https://your-app.railway.app/test-auth`);
+  console.log(`Test authentication: https://fulcrum-mcp-connector-production.up.railway.app/test-auth`);
 });
 
 // MCP Server Setup
