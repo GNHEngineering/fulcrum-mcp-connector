@@ -74,14 +74,16 @@ async function callFulcrumAPI(endpoint, method = 'GET', body = null) {
 app.get('/test-auth', async (req, res) => {
   try {
     console.log('Testing authentication with corrected URL...');
-    const result = await callFulcrumAPI('/api/sales-orders', 'GET');
+    // Use the correct API format according to Fulcrum docs
+    const result = await callFulcrumAPI('/api/sales-orders/list', 'POST', { pageSize: 5 });
     
     res.json({
       success: true,
       message: 'Successfully authenticated with Fulcrum API',
       apiUrl: FULCRUM_API_URL,
       dataReceived: !!result,
-      responseKeys: Object.keys(result || {})
+      responseKeys: Object.keys(result || {}),
+      sampleData: result
     });
   } catch (error) {
     console.error('Authentication test failed:', error);
